@@ -34,9 +34,9 @@ def Build_Encoder(IMAGE_SIZE, CONV_WIDTHS, CONV_DEPTH, KERNEL, LATENT_DIM):
         x = layers.Conv2D(width, KERNEL, strides=2, padding="same")(x) 
         x = layers.BatchNormalization()(x)
         x = layers.LeakyReLU()(x)
-        if len(CONV_DEPTH) > 0:
-            for depth in CONV_DEPTH:
-                x = layers.Conv2D(depth, KERNEL, strides=1, padding="same")(x)
+        if CONV_DEPTH > 0:
+            for _ in range(CONV_DEPTH):
+                x = layers.Conv2D(width, KERNEL, strides=1, padding="same")(x)
                 x = layers.BatchNormalization()(x)
                 x = layers.LeakyReLU()(x)
     conv_z_mean = layers.Conv2D(LATENT_DIM, KERNEL, strides=1, padding="same", name="conv_z_mean")(x)
@@ -55,9 +55,9 @@ def Build_Decoder(FINAL_OUTPUT, CONV_WIDTHS, CONV_DEPTH, KERNEL, LATENT_DIM):
         x = layers.Conv2DTranspose(width, KERNEL, strides=2, padding="same")(x) 
         x = layers.BatchNormalization()(x)
         x = layers.LeakyReLU()(x)
-        if len(CONV_DEPTH) > 0:
-            for depth in CONV_DEPTH:
-                x = layers.Conv2DTranspose(depth, KERNEL, strides=1, padding="same")(x)
+        if CONV_DEPTH > 0:
+            for _ in range(CONV_DEPTH):
+                x = layers.Conv2DTranspose(width, KERNEL, strides=1, padding="same")(x)
                 x = layers.BatchNormalization()(x)
                 x = layers.LeakyReLU()(x)
     decoder_outputs = layers.Conv2DTranspose(3, KERNEL, activation="sigmoid", padding="same")(x)
