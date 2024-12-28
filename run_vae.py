@@ -24,8 +24,8 @@ FOLDER_NAME = "flow_large"
 # architecture
 IMAGE_SIZE = (192, 576)
 LATENT_DIM = 1024
-CONV_WIDTHS = [32, 64, 128, 256, 512]
-CONV_DEPTH = []
+CONV_WIDTHS = [64, 128, 256, 512]
+CONV_DEPTH = [512]
 KERNEL = 3
 
 # optimization
@@ -102,10 +102,12 @@ def show_performance_visually(training_dataset, vae):
     img = batches[0]
 
     # encode the batches
-    _, _, z = vae.encoder.predict(batches)
+    #_, _, z = vae.encoder.predict(batches)
+    _, _, z = vae.encode(batches)
 
     # decode from the encoder prediction
-    generated_sample = vae.decoder.predict(z)
+    #generated_sample = vae.decoder.predict(z)
+    generated_sample = vae.decode(z)
 
     # create plots
     _, axes = plt.subplots(1, 3, figsize=(10, 10))
@@ -126,7 +128,7 @@ def save_image_samples(training_dataset, vae, num_to_save, current_time):
 
     # create destination directory
     root = os.getcwd()
-    dest_dir = os.path.join(root, f"{SAVE_IMAGE_SAMPLE}/{current_time}")
+    dest_dir = os.path.join(root, f"{SAVE_IMAGE_SAMPLE_PATH}/{current_time}")
     CreateDir(dest_dir)
 
     index = 0
@@ -135,10 +137,12 @@ def save_image_samples(training_dataset, vae, num_to_save, current_time):
         print(exp_img.shape)
 
         # encode the batches
-        _, _, z = vae.encoder.predict(exp_img)
+        #_, _, z = vae.encoder.predict(exp_img)
+        _, _, z = vae.encode(exp_img)
 
         # decode from the encoder prediction
-        generated_sample = vae.decoder.predict(z)
+        #generated_sample = vae.decoder.predict(z)
+        generated_sample = vae.decode(z)
         decoded_image = generated_sample[0]
 
         # scale both images

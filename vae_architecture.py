@@ -26,36 +26,40 @@ class Sampling(layers.Layer):
 
 """Build the Encoder"""
 def Build_Encoder(IMAGE_SIZE, CONV_WIDTHS, CONV_DEPTH, KERNEL, LATENT_DIM): 
-    """Potentially add block depth onto the model in the future to check performance"""
     encoder_inputs = keras.Input(shape=(IMAGE_SIZE[0], IMAGE_SIZE[1], 3))
-    x = layers.Conv2D(CONV_WIDTHS[0], KERNEL, activation="relu", strides=2, padding="same")(encoder_inputs)
+    x = layers.Conv2D(CONV_WIDTHS[0], KERNEL, strides=2, padding="same")(encoder_inputs)
+    x = layers.BatchNormalization()(x)
+    x = layers.LeakyReLU()(x)
     for width in CONV_WIDTHS[1:]: 
-        x = layers.Conv2D(width, KERNEL, activation="relu", strides=2, padding="same")(x) 
-        if len(CONV_DEPTH) > 0:
-            for depth in CONV_DEPTH:
-                x = layers.Conv2D(depth, KERNEL, activation="relu", strides=1, padding="same")(x)
+        x = layers.Conv2D(width, KERNEL, strides=2, padding="same")(x) 
         x = layers.BatchNormalization()(x)
         x = layers.LeakyReLU()(x)
+        if len(CONV_DEPTH) > 0:
+            for depth in CONV_DEPTH:
+                x = layers.Conv2D(depth, KERNEL, strides=1, padding="same")(x)
+                x = layers.BatchNormalization()(x)
+                x = layers.LeakyReLU()(x)
     conv_z_mean = layers.Conv2D(LATENT_DIM, KERNEL, strides=1, padding="same", name="conv_z_mean")(x)
     conv_z_log_var = layers.Conv2D(LATENT_DIM, KERNEL, strides=1, padding="same", name="conv_z_log_var")(x)
     z = Sampling()([conv_z_mean, conv_z_log_var])
     return keras.Model(encoder_inputs, [conv_z_mean, conv_z_log_var, z], name="encoder")
 
-
 """Build the Decoder"""
 def Build_Decoder(FINAL_OUTPUT, CONV_WIDTHS, CONV_DEPTH, KERNEL, LATENT_DIM): 
-    """Potentially add block depth onto the model in the future to check performance"""
     latent_inputs = keras.Input(shape=(FINAL_OUTPUT.output.shape[1:]))
     print(latent_inputs)
-    x = layers.Conv2D(LATENT_DIM, KERNEL, activation="relu", strides=1, padding="same")(latent_inputs)
-    # add more convolutional layers here
+    x = layers.Conv2D(LATENT_DIM, KERNEL, strides=1, padding="same")(latent_inputs)
+    x = layers.BatchNormalization()(x)
+    x = layers.LeakyReLU()(x)
     for width in CONV_WIDTHS[::-1]: 
-        x = layers.Conv2DTranspose(width, KERNEL, activation="relu", strides=2, padding="same")(x) 
-        if len(CONV_DEPTH) > 0:
-            for depth in CONV_DEPTH:
-                x = layers.Conv2DTranspose(depth, KERNEL, activation="relu", strides=1, padding="same")(x)
+        x = layers.Conv2DTranspose(width, KERNEL, strides=2, padding="same")(x) 
         x = layers.BatchNormalization()(x)
         x = layers.LeakyReLU()(x)
+        if len(CONV_DEPTH) > 0:
+            for depth in CONV_DEPTH:
+                x = layers.Conv2DTranspose(depth, KERNEL, strides=1, padding="same")(x)
+                x = layers.BatchNormalization()(x)
+                x = layers.LeakyReLU()(x)
     decoder_outputs = layers.Conv2DTranspose(3, KERNEL, activation="sigmoid", padding="same")(x)
     return keras.Model(latent_inputs, decoder_outputs, name="decoder")
 
@@ -100,3 +104,10 @@ class VAE(keras.Model):
             "reconstruction_loss": self.reconstruction_loss_tracker.result(),
             "kl_loss": self.kl_loss_tracker.result(),
         }
+    def encode(self, image): 
+        # returns z_mean, z_log_var, and z
+        return self.encoder.predict(image)
+    def decode(self, z): 
+        # returns the decoded image
+        return self.decoder.predict(z)
+        
