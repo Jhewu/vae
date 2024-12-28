@@ -1,4 +1,4 @@
 archive/
 flow_large/
-vae_large_sample/
-weights/
+checkpoints/
+sample_images/
