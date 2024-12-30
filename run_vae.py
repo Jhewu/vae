@@ -23,7 +23,7 @@ FOLDER_NAME = "flow_large"
 
 # architecture
 IMAGE_SIZE = (192, 592)
-LATENT_DIM = 1024
+LATENT_DIM = 512
 CONV_WIDTHS = [64, 128, 256, 512]
 CONV_KERNEL = [3, 3, 5, 5]
 CONV_DEPTH = 1
@@ -213,8 +213,11 @@ def RunVAE(current_time):
                 batch_size=BATCH_SIZE,
                 callbacks=[checkpoint_callback, early_stopping_callback])
         
-        save_image_samples(training_dataset, vae, NUM_IMAGES_TO_SAVE, current_time)
-        model.save_weights(f"{CHECKPOINT_PATH}/last_{current_time}.weights.h5")
+        if SAVE_IMAGE_SAMPLE:
+            save_image_samples(training_dataset, vae, NUM_IMAGES_TO_SAVE, current_time)
+
+        # Also save the latest weights
+        vae.save_weights(f"{CHECKPOINT_PATH}/last_{current_time}.weights.h5")
 
     elif MODE == "inference": 
         save_image_samples(training_dataset, vae, NUM_IMAGES_TO_SAVE, current_time)
