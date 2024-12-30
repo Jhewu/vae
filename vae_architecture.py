@@ -96,7 +96,7 @@ class VAE(keras.Model):
             kl_loss = -0.5 * tf.reduce_sum(1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var), axis=-1)
             kl_loss = tf.reduce_mean(kl_loss)
             # total loss
-            total_loss = reconstruction_loss + (kl_loss * 100)
+            total_loss = reconstruction_loss + kl_loss # * 100)
         grads = tape.gradient(total_loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         self.total_loss_tracker.update_state(total_loss)
@@ -113,4 +113,3 @@ class VAE(keras.Model):
     def decode(self, z): 
         # returns the decoded image
         return self.decoder.predict(z)
-        

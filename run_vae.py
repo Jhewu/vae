@@ -12,6 +12,7 @@ import keras
 import matplotlib.pyplot as plt
 import cv2 as cv
 import datetime
+import shutil
 
 """Import Local"""
 from vae_architecture import *
@@ -24,9 +25,9 @@ FOLDER_NAME = "flow_large"
 # architecture
 IMAGE_SIZE = (192, 592)
 LATENT_DIM = 512
-CONV_WIDTHS = [64, 128, 256, 512]
-CONV_KERNEL = [3, 3, 5, 5]
-CONV_DEPTH = 1
+CONV_WIDTHS = [32, 64, 128, 256]
+CONV_KERNEL = [3, 3, 3, 3]
+CONV_DEPTH = 0
 
 # optimization
 LEARNING_RATE = 3.5e-4
@@ -37,13 +38,13 @@ DATASET_REPETITION = 1
 
 # callbacks
 CHECKPOINT_PATH = "checkpoints"
-PATIENCE = 15
-START_FROM_EPOCH = 0
+PATIENCE = 10
+START_FROM_EPOCH = 25
 
 # modes
 MODE = "training"
 LOAD_WEIGHTS = False
-LOAD_WEIGHT_PATH = "checkpoints/best_2024-12-29 15:36:18.958169.weights.h5"
+LOAD_WEIGHT_PATH = "checkpoints/last_2024-12-29_22:57:58.weights.h5"
 SAVE_IMAGE_SAMPLE = True
 SAVE_IMAGE_SAMPLE_PATH = "sample_images"
 NUM_IMAGES_TO_SAVE = 5
@@ -182,7 +183,7 @@ def RunVAE(current_time):
         vae.load_weights(LOAD_WEIGHT_PATH)
 
     if MODE == "training": 
-        CreateDir(CHECKPOINT_PATH)
+        CreateDir(f"{CHECKPOINT_PATH}/run_{current_time}/")
 
         # compile the model
         vae.compile(optimizer=keras.optimizers.Adam(
@@ -190,17 +191,20 @@ def RunVAE(current_time):
             weight_decay=WEIGHT_DECAY,
         ))
 
+        # create a callback for logging csv files
+        csv_callback = keras.callbacks.CSVLogger(filename=f"{CHECKPOINT_PATH}/run_{current_time}/log.csv", separator=",", append=True)
+
         # Create a callback that saves the models' weights
-        checkpoint_callback = keras.callbacks.ModelCheckpoint(filepath=f"{CHECKPOINT_PATH}/best_{current_time}.weights.h5",
+        checkpoint_callback = keras.callbacks.ModelCheckpoint(filepath=f"{CHECKPOINT_PATH}/run_{current_time}/best.weights.h5",
                                                                 save_best_only=True, 
                                                                 save_weights_only=True, 
-                                                                monitor="loss",
+                                                                monitor="reconstruction_loss",
                                                                 verbose=1,
                                                                 mode="min")
 
         # Create an early stopping callback
-        early_stopping_callback = keras.callbacks.EarlyStopping(monitor="loss", 
-                                                                min_delta=LEARNING_RATE*1000, 
+        early_stopping_callback = keras.callbacks.EarlyStopping(monitor="reconstruction_loss", 
+                                                                min_delta=1e-2, 
                                                                 mode="min",
                                                                 patience=PATIENCE, 
                                                                 verbose=1, 
@@ -211,13 +215,14 @@ def RunVAE(current_time):
         vae.fit(x=training_dataset, 
                 epochs=EPOCHS, 
                 batch_size=BATCH_SIZE,
-                callbacks=[checkpoint_callback, early_stopping_callback])
-        
-        if SAVE_IMAGE_SAMPLE:
-            save_image_samples(training_dataset, vae, NUM_IMAGES_TO_SAVE, current_time)
+                callbacks=[checkpoint_callback, early_stopping_callback, csv_callback])
 
-        # Also save the latest weights
-        vae.save_weights(f"{CHECKPOINT_PATH}/last_{current_time}.weights.h5")
+        # save image samples and the last weight
+        save_image_samples(training_dataset, vae, NUM_IMAGES_TO_SAVE, current_time)
+        vae.save_weights(f"{CHECKPOINT_PATH}/run_{current_time}/last.weights.h5")
+
+        # copy run_vae.py to the checkpoint folder, to retain the architecture
+        shutil.copy("run_vae.py", f"{CHECKPOINT_PATH}/run_{current_time}/run_vae.py")
 
     elif MODE == "inference": 
         save_image_samples(training_dataset, vae, NUM_IMAGES_TO_SAVE, current_time)
