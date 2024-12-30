@@ -25,25 +25,25 @@ FOLDER_NAME = "flow_large"
 IMAGE_SIZE = (192, 592)
 LATENT_DIM = 1024
 CONV_WIDTHS = [64, 128, 256, 512]
-CONV_DEPTH = 1
-KERNEL = 3
+CONV_KERNEL = [3, 3, 5, 5]
+CONV_DEPTH = [256]
 
 # optimization
 LEARNING_RATE = 3.5e-4
 WEIGHT_DECAY = LEARNING_RATE/10
 BATCH_SIZE = 8
-EPOCHS = 50
+EPOCHS = 100
 DATASET_REPETITION = 1
 
 # callbacks
 CHECKPOINT_PATH = "checkpoints"
 PATIENCE = 15
-START_FROM_EPOCH = 50
+START_FROM_EPOCH = 0
 
 # modes
-MODE = "training"
-LOAD_WEIGHTS = False
-LOAD_WEIGHT_PATH = ""
+MODE = "inference"
+LOAD_WEIGHTS = True
+LOAD_WEIGHT_PATH = "checkpoints/best_2024-12-29 15:36:18.958169.weights.h5"
 SAVE_IMAGE_SAMPLE = True
 SAVE_IMAGE_SAMPLE_PATH = "sample_images"
 NUM_IMAGES_TO_SAVE = 5
@@ -172,11 +172,11 @@ def RunVAE(curret_time):
     training_dataset = prepare_dataset(dataset)
 
     # build the encoder to obtain the final output layer
-    encoder = Build_Encoder(IMAGE_SIZE, CONV_WIDTHS, CONV_DEPTH, KERNEL, LATENT_DIM)
+    encoder = Build_Encoder(IMAGE_SIZE, CONV_WIDTHS, CONV_DEPTH, CONV_KERNEL, LATENT_DIM)
     final_output = encoder.get_layer("conv_z_log_var")
 
     # build the VAE model
-    vae = VAE(IMAGE_SIZE, final_output, CONV_WIDTHS, CONV_DEPTH, KERNEL, LATENT_DIM)
+    vae = VAE(IMAGE_SIZE, final_output, CONV_WIDTHS, CONV_DEPTH, CONV_KERNEL, LATENT_DIM)
 
     if LOAD_WEIGHTS:
         vae.load_weights(LOAD_WEIGHT_PATH)
@@ -194,7 +194,7 @@ def RunVAE(curret_time):
         checkpoint_callback = keras.callbacks.ModelCheckpoint(filepath=f"{CHECKPOINT_PATH}/best_{current_time}.weights.h5",
                                                                 save_best_only=True, 
                                                                 save_weights_only=True, 
-                                                                monitor="kl_loss",
+                                                                monitor="loss",
                                                                 verbose=1,
                                                                 mode="min")
 
@@ -213,7 +213,7 @@ def RunVAE(curret_time):
                 batch_size=BATCH_SIZE,
                 callbacks=[checkpoint_callback, early_stopping_callback])
         
-        save_image_samples(training_dataset, vae, NUM_IMAGES_TO_SAVE, current_time)
+        #save_image_samples(training_dataset, vae, NUM_IMAGES_TO_SAVE, current_time)
 
     elif MODE == "inference": 
         save_image_samples(training_dataset, vae, NUM_IMAGES_TO_SAVE, current_time)
