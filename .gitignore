@@ -3,3 +3,4 @@ flow_large/
 checkpoints/
 sample_images/
 experiments/
+.ipynb_checkpoints/

@@ -34,9 +34,9 @@ def Build_Encoder(IMAGE_SIZE, CONV_WIDTHS, CONV_DEPTH, CONV_KERNEL, LATENT_DIM):
         x = layers.Conv2D(CONV_WIDTHS[i], CONV_KERNEL[i], strides=2, padding="same")(x) 
         x = layers.BatchNormalization()(x)
         x = layers.ReLU()(x)
-        if len(CONV_DEPTH) > 0:
-            for depth in CONV_DEPTH:
-                x = layers.Conv2D(depth, 3, strides=1, padding="same")(x)
+        if CONV_DEPTH > 0:
+            for _ in range(CONV_DEPTH):
+                x = layers.Conv2D(CONV_WIDTHS[i], CONV_KERNEL[i], strides=1, padding="same")(x)
                 x = layers.BatchNormalization()(x)
                 x = layers.ReLU()(x)
     conv_z_mean = layers.Conv2D(LATENT_DIM, 3, strides=1, padding="same", name="conv_z_mean")(x)
@@ -55,9 +55,9 @@ def Build_Decoder(FINAL_OUTPUT, CONV_WIDTHS, CONV_DEPTH, CONV_KERNEL, LATENT_DIM
         x = layers.Conv2DTranspose(CONV_WIDTHS[i], CONV_KERNEL[i], strides=2, padding="same")(x) 
         x = layers.BatchNormalization()(x)
         x = layers.ReLU()(x)
-        if len(CONV_DEPTH) > 0:
-            for depth in CONV_DEPTH:
-                x = layers.Conv2DTranspose(depth, 3, strides=1, padding="same")(x)
+        if CONV_DEPTH > 0:
+            for _ in range(CONV_DEPTH):
+                x = layers.Conv2DTranspose(CONV_WIDTHS[i], CONV_KERNEL[i], strides=1, padding="same")(x)
                 x = layers.BatchNormalization()(x)
                 x = layers.ReLU()(x)
     decoder_outputs = layers.Conv2DTranspose(3, 3, activation="sigmoid", padding="same")(x)
@@ -96,7 +96,7 @@ class VAE(keras.Model):
             kl_loss = -0.5 * tf.reduce_sum(1 + z_log_var - tf.square(z_mean) - tf.exp(z_log_var), axis=-1)
             kl_loss = tf.reduce_mean(kl_loss)
             # total loss
-            total_loss = reconstruction_loss + kl_loss
+            total_loss = (reconstruction_loss + kl_loss) * 100
         grads = tape.gradient(total_loss, self.trainable_weights)
         self.optimizer.apply_gradients(zip(grads, self.trainable_weights))
         self.total_loss_tracker.update_state(total_loss)

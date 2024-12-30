@@ -26,7 +26,7 @@ IMAGE_SIZE = (192, 592)
 LATENT_DIM = 1024
 CONV_WIDTHS = [64, 128, 256, 512]
 CONV_KERNEL = [3, 3, 5, 5]
-CONV_DEPTH = [256]
+CONV_DEPTH = 1
 
 # optimization
 LEARNING_RATE = 3.5e-4
@@ -41,8 +41,8 @@ PATIENCE = 15
 START_FROM_EPOCH = 0
 
 # modes
-MODE = "inference"
-LOAD_WEIGHTS = True
+MODE = "training"
+LOAD_WEIGHTS = False
 LOAD_WEIGHT_PATH = "checkpoints/best_2024-12-29 15:36:18.958169.weights.h5"
 SAVE_IMAGE_SAMPLE = True
 SAVE_IMAGE_SAMPLE_PATH = "sample_images"
@@ -163,7 +163,7 @@ def save_image_samples(training_dataset, vae, num_to_save, current_time):
         index+=1
 
 """Main Runtimes"""
-def RunVAE(curret_time): 
+def RunVAE(current_time): 
     # Check if GPU tensorflow is using GPU
     print(f"\nNum GPUs Available: {len(tf.config.list_physical_devices('GPU'))}\n")
 
@@ -199,8 +199,8 @@ def RunVAE(curret_time):
                                                                 mode="min")
 
         # Create an early stopping callback
-        early_stopping_callback = keras.callbacks.EarlyStopping(monitor="kl_loss", 
-                                                                min_delta=LEARNING_RATE/10, 
+        early_stopping_callback = keras.callbacks.EarlyStopping(monitor="loss", 
+                                                                min_delta=LEARNING_RATE*1000, 
                                                                 mode="min",
                                                                 patience=PATIENCE, 
                                                                 verbose=1, 
@@ -213,7 +213,8 @@ def RunVAE(curret_time):
                 batch_size=BATCH_SIZE,
                 callbacks=[checkpoint_callback, early_stopping_callback])
         
-        #save_image_samples(training_dataset, vae, NUM_IMAGES_TO_SAVE, current_time)
+        save_image_samples(training_dataset, vae, NUM_IMAGES_TO_SAVE, current_time)
+        model.save_weights(f"{CHECKPOINT_PATH}/last_{current_time}.weights.h5")
 
     elif MODE == "inference": 
         save_image_samples(training_dataset, vae, NUM_IMAGES_TO_SAVE, current_time)
